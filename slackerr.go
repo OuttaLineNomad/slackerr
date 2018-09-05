@@ -74,10 +74,11 @@ func Send(channel string, pld *SendMsg) error {
 }
 
 // HitTheBananasError sets up payload to send error message to Hit-The-Bananas.
-func HitTheBananasError(channel string, err string, logsURL string) error {
+func HitTheBananasError(channel string, err string, logsURL string, mentions []string) error {
 	errMsg := err
+	ats := linkMentions(mentions)
 	pld := &SendMsg{
-		Text: "System Error!",
+		Text: ats + " you have a system error!",
 		Attachments: []Attachments{Attachments{
 			Fallback:   "error alert " + errMsg,
 			Title:      "High Priority",
@@ -99,4 +100,14 @@ func HitTheBananasError(channel string, err string, logsURL string) error {
 		},
 	}
 	return Send(channel, pld)
+}
+
+func linkMentions(ats []string) string {
+	str := ""
+	if len(ats) != 0 {
+		for _, name := range ats {
+			str += "<" + name + "> "
+		}
+	}
+	return str
 }
