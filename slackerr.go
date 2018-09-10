@@ -50,18 +50,23 @@ func (er *Error) Error() string {
 }
 
 // Send sends messages to slak.
-func Send(channel string, pld *SendMsg) error {
+func Send(channel string, pld *SendMsg, custom *http.Client) error {
+
 	b, err := json.Marshal(pld)
 	if err != nil {
 		return err
 	}
 	payload := bytes.NewReader(b)
+
 	req, _ := http.NewRequest("POST", channel, payload)
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Cache-Control", "no-cache")
-
-	res, err := http.DefaultClient.Do(req)
+	clint := http.DefaultClient
+	if custom != nil {
+		clint = custom
+	}
+	res, err := clint.Do(req)
 	if err != nil {
 		return err
 	}
@@ -99,7 +104,36 @@ func HitTheBananasError(channel string, err string, logsURL string, mentions []s
 		},
 		},
 	}
-	return Send(channel, pld)
+	return Send(channel, pld, nil)
+}
+
+// HitTheBananasErrorAE sets up payload to send error message to Hit-The-Bananas for app engine or any need for custom client.
+func HitTheBananasErrorAE(c *http.Client, channel string, err string, logsURL string, mentions []string) error {
+	errMsg := err
+	ats := linkMentions(mentions)
+	pld := &SendMsg{
+		Text: ats + " you have a system error!",
+		Attachments: []Attachments{Attachments{
+			Fallback:   "error alert " + errMsg,
+			Title:      "High Priority",
+			AuthorName: "Hit-The_Bananas",
+			AuthorIcon: "https://rpelm.com/images/banana-clipart-cartoon-1.png",
+			Color:      "danger",
+			Fields: []Fields{Fields{
+				Title: "[Error Message]",
+				Value: errMsg,
+				Short: false,
+			}},
+			Actions: []Actions{Actions{
+				Type:  "button",
+				Text:  "View Logs",
+				Style: "primary",
+				URL:   logsURL,
+			}},
+		},
+		},
+	}
+	return Send(channel, pld, c)
 }
 
 func linkMentions(ats []string) string {
